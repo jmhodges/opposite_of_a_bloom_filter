@@ -41,7 +41,7 @@ public class ByteArrayFilter {
     }
     // round to the next largest power of two
     this.size = IntMath.pow(2, IntMath.log2(size, RoundingMode.CEILING));
-    this.array = new AtomicReferenceArray<byte[]>(size);
+    this.array = new AtomicReferenceArray<byte[]>(this.size);
   }
 
   /**
@@ -55,7 +55,7 @@ public class ByteArrayFilter {
    * @param id The byte array that may have been previously seen.
    * @return Whether the byte array is contained in the ByteArrayFilter.
    */
-  public boolean contains(byte[] id) {
+  public boolean containsAndAdd(byte[] id) {
     HashCode code = HASH_FUNC.hashBytes(id);
     int index = Math.abs(code.asInt()) % size;
     byte[] oldId = array.getAndSet(index, id);

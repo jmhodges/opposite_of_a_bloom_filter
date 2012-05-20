@@ -1,7 +1,5 @@
 package com.somethingsimilar.opposite_of_a_bloom_filter;
 
-import java.util.concurrent.atomic.AtomicReferenceArray;
-
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -17,20 +15,20 @@ public class ByteArrayFilterTest {
     byte[] twentyNineId = new byte[]{27, 28, 29};
     byte[] thirtyId = new byte[]{27, 28, 30};
     byte[] thirtyThreeId = new byte[]{27, 28, 33};
-    assertFalse("nothing should be contained at all", filter.contains(twentyNineId));
-    assertTrue("now it should", filter.contains(twentyNineId));
-    assertFalse("false unless the hash collides", filter.contains(thirtyId));
-    assertTrue("original should still return true", filter.contains(twentyNineId));
-    assertTrue("new array should still return true", filter.contains(thirtyId));
+    assertFalse("nothing should be contained at all", filter.containsAndAdd(twentyNineId));
+    assertTrue("now it should", filter.containsAndAdd(twentyNineId));
+    assertFalse("false unless the hash collides", filter.containsAndAdd(thirtyId));
+    assertTrue("original should still return true", filter.containsAndAdd(twentyNineId));
+    assertTrue("new array should still return true", filter.containsAndAdd(thirtyId));
 
     // Handling collisions. {27, 28, 33} and {27, 28, 30} hash to the same index using the current
     // hash function inside ByteArrayFilter.
-    assertFalse("colliding array returns false", filter.contains(thirtyThreeId));
+    assertFalse("colliding array returns false", filter.containsAndAdd(thirtyThreeId));
     assertTrue(
-        "colliding array returns true in second call", filter.contains(thirtyThreeId));
-    assertFalse("original colliding array returns false", filter.contains(thirtyId));
-    assertTrue("original colliding array returns true", filter.contains(thirtyId));
-    assertFalse("colliding array returns false", filter.contains(thirtyThreeId));
+        "colliding array returns true in second call", filter.containsAndAdd(thirtyThreeId));
+    assertFalse("original colliding array returns false", filter.containsAndAdd(thirtyId));
+    assertTrue("original colliding array returns true", filter.containsAndAdd(thirtyId));
+    assertFalse("colliding array returns false", filter.containsAndAdd(thirtyThreeId));
   }
 
   @Test
