@@ -53,7 +53,7 @@ type md5UintHash struct {
 func (m md5UintHash) Sum32() uint32 {
 	sum := m.Sum(nil)
 	x := uint32(sum[0])
-	for _, val := range sum[1:4] {
+	for _, val := range sum[1:3] {
 		x = x << 3
 		x += uint32(val)
 	}
