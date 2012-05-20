@@ -18,7 +18,7 @@ import com.google.common.math.IntMath;
  */
 public class ByteArrayFilter {
   private static final HashFunction HASH_FUNC = Hashing.murmur3_32();
-  private final int size;
+  private final int sizeMask;
   private final AtomicReferenceArray<byte[]> array;
   private static final int MAX_SIZE = 1 << 30;
 
@@ -40,8 +40,9 @@ public class ByteArrayFilter {
           "array size may not be larger than 2**31-1, but will be rounded to larger. was " + size);
     }
     // round to the next largest power of two
-    this.size = IntMath.pow(2, IntMath.log2(size, RoundingMode.CEILING));
-    this.array = new AtomicReferenceArray<byte[]>(this.size);
+    int poweredSize = IntMath.pow(2, IntMath.log2(size, RoundingMode.CEILING));
+    this.sizeMask = poweredSize - 1;
+    this.array = new AtomicReferenceArray<byte[]>(poweredSize);
   }
 
   /**
@@ -57,7 +58,7 @@ public class ByteArrayFilter {
    */
   public boolean containsAndAdd(byte[] id) {
     HashCode code = HASH_FUNC.hashBytes(id);
-    int index = Math.abs(code.asInt()) % size;
+    int index = Math.abs(code.asInt()) & sizeMask;
     byte[] oldId = array.getAndSet(index, id);
     return Arrays.equals(id, oldId);
   }
@@ -68,6 +69,6 @@ public class ByteArrayFilter {
    * @return The size of the underlying array.
    */
   public int getSize() {
-    return size;
+    return array.length();
   }
 }
