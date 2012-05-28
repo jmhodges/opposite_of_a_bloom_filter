@@ -102,4 +102,13 @@ public class OoaBFilter {
 
     return seen;
   }
+
+  /**
+   * Returns the size of the underlying array. Welp.
+   *
+   * @return The size of the underlying array.
+   */
+  public int getSize() {
+    return array.length;
+  }
 }

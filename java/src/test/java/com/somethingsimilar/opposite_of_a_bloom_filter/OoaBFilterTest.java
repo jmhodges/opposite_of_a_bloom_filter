@@ -43,7 +43,7 @@ public class OoaBFilterTest {
     assertTrue("new array should still return true", filter.containsAndAdd(thirtyId));
 
     // Handling collisions. {27, 28, 33} and {27, 28, 30} hash to the same index using the current
-    // hash function inside ByteArrayFilter.
+    // hash function inside OoaBFilter.
     assertFalse("colliding array returns false", filter.containsAndAdd(thirtyThreeId));
     assertTrue(
         "colliding array returns true in second call", filter.containsAndAdd(thirtyThreeId));
@@ -54,11 +54,11 @@ public class OoaBFilterTest {
 
   @Test
   public void testSizeRounding() {
-    ByteArrayFilter filter = new ByteArrayFilter(3);
+    OoaBFilter filter = new OoaBFilter(3, 0);
     assertEquals("3 should round to 4", 4, filter.getSize());
-    filter = new ByteArrayFilter(4);
+    filter = new OoaBFilter(4, 0);
     assertEquals("4 should round to 4", 4, filter.getSize());
-    filter = new ByteArrayFilter(129);
+    filter = new OoaBFilter(129, 0);
     assertEquals("129 should round to 256", 256, filter.getSize());
   }
 
@@ -66,7 +66,7 @@ public class OoaBFilterTest {
   public void testTooLargeSize() {
     int size = (1<<30) + 1;
     try {
-      new ByteArrayFilter(size);
+      new OoaBFilter(size, 0);
       fail("should have thrown an IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       String msg =
@@ -79,7 +79,7 @@ public class OoaBFilterTest {
   public void testTooSmallSize() {
     int size = 0;
     try {
-      new ByteArrayFilter(size);
+      new OoaBFilter(size, 0);
       fail("zero passed in directly should have thrown an IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       String msg = "array size must be greater than zero, was 0";
