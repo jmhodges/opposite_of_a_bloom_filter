@@ -21,7 +21,7 @@ type Filter struct {
 	sizeMask uint32
 }
 
-var ErrSizeTooLarge = errors.New("oppobloom: size given to large to round to a power of 2")
+var ErrSizeTooLarge = errors.New("oppobloom: size given too large to round to a power of 2")
 var ErrSizeTooSmall = errors.New("oppobloom: filter cannot have a zero or negative size")
 var MaxFilterSize = 1 << 30
 
