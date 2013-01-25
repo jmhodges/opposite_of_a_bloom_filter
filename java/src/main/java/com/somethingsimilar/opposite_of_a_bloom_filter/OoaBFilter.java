@@ -86,7 +86,7 @@ public class OoaBFilter {
    */
   public boolean containsAndAdd(Element element) {
     ByteBuffer eBytes = element.getByteBuffer();
-    HashCode code = HASH_FUNC.hashBytes(eBytes.array());
+    HashCode code = HASH_FUNC.hashBytes(eBytes.array(), eBytes.arrayOffset() + eBytes.position(), eBytes.remaining());
     int index = code.asInt() & sizeMask;
 
     boolean seen = true;
