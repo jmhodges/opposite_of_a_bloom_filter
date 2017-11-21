@@ -17,8 +17,10 @@ import (
 )
 
 type Filter struct {
-	array []*[]byte
-	sizeMask uint32
+	array      []*[]byte
+	sizeMask   uint32
+	numEntries uint32
+	bytesUsed  uint64
 }
 
 var ErrSizeTooLarge = errors.New("oppobloom: size given too large to round to a power of 2")
@@ -36,16 +38,49 @@ func NewFilter(size int) (*Filter, error) {
 	size = int(math.Pow(2, math.Ceil(math.Log2(float64(size)))))
 	slice := make([]*[]byte, size)
 	sizeMask := uint32(size - 1)
-	return &Filter{slice, sizeMask}, nil
+	return &Filter{array: slice, sizeMask: sizeMask}, nil
 }
 
+// Adds the given bytes to the set, and indicates if they were already present in the set.
+// A true value here is definitive; a false value may be a false negative.
 func (f *Filter) Contains(id []byte) bool {
+	ret, _ := f.ContainsCollision(id)
+	return ret
+}
+
+// Like Contains, but also indicates if there was a collision on the key. If both are false,
+// then you can be sure that it is not a false negative. It may also be interested to track
+// how often collisons happen-- that tracking is left to external concerns.
+func (f *Filter) ContainsCollision(id []byte) (contains bool, collision bool) {
 	h := md5UintHash{md5.New()}
 	h.Write(id)
 	uindex := h.Sum32() & f.sizeMask
 	index := int32(uindex)
 	oldId := getAndSet(f.array, index, id)
-	return bytes.Equal(oldId, id)
+	contains = bytes.Equal(oldId, id)
+	collision = len(oldId) != 0 && !contains
+	if !contains && !collision {
+		atomic.AddUint32(&f.numEntries, 1)
+	}
+	var bytesUsedDelta int64 = int64(len(id)) - int64(len(oldId))
+	if bytesUsedDelta < 0 {
+		atomic.AddUint64(&f.bytesUsed, ^uint64((-1*bytesUsedDelta)-1))
+	} else {
+		atomic.AddUint64(&f.bytesUsed, uint64(bytesUsedDelta))
+	}
+
+	return contains, collision
+}
+
+// Indicates how many entries have been added to the set. This will increment when new entries
+// are added, and they do not collide with existing entries.
+func (f *Filter) NumEntries() uint32 {
+	return atomic.LoadUint32(&f.numEntries)
+}
+
+// Returns the total size of the data held by the Filter.
+func (f *Filter) BytesUsed() uint64 {
+	return atomic.LoadUint64(&f.bytesUsed)
 }
 
 func (f *Filter) Size() int {
