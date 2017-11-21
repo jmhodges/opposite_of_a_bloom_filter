@@ -17,7 +17,7 @@ import (
 )
 
 type Filter struct {
-	array []*[]byte
+	array    []*[]byte
 	sizeMask uint32
 }
 
