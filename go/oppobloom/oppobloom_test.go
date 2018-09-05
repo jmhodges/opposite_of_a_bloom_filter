@@ -4,6 +4,7 @@
 package oppobloom
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -12,46 +13,112 @@ func TestTheBasics(t *testing.T) {
 	twentyNineId := []byte{27, 28, 29}
 	thirtyId := []byte{27, 28, 30}
 	thirtyThreeId := []byte{27, 28, 33}
-	shouldNotContain(t, "nothing should be contained at all", f, twentyNineId)
+	shorterId := []byte{27, 28}
+	shouldNotContainShouldNotCollide(t, "nothing should be contained at all", f, twentyNineId)
 	shouldContain(t, "now it should", f, twentyNineId)
-	shouldNotContain(t, "false unless the hash collides", f, thirtyId)
+	shouldNotContainShouldNotCollide(t, "false unless the hash collides", f, thirtyId)
 	shouldContain(t, "original should still return true", f, twentyNineId)
 	shouldContain(t, "new array should still return true", f, thirtyId)
 
 	// Handling collisions. {27, 28, 33} and {27, 28, 30} hash to the same
 	// index using the current hash function inside Filter.
-	shouldNotContain(t, "colliding array returns false", f, thirtyThreeId)
+	shouldNotContainShouldCollide(t, "colliding array returns false", f, thirtyThreeId)
 	shouldContain(t,
 		"colliding array returns true in second call", f, thirtyThreeId)
-	shouldNotContain(t, "original colliding array returns false", f, thirtyId)
+	shouldNotContainShouldCollide(t, "original colliding array returns false", f, thirtyId)
 	shouldContain(t, "original colliding array returns true", f, thirtyId)
-	shouldNotContain(t, "colliding array returns false", f, thirtyThreeId)
+	shouldNotContainShouldCollide(t, "colliding array returns false", f, thirtyThreeId)
+	shouldNotContainShouldCollide(t, "colliding shorter array returns false", f, shorterId)
+}
+
+func TestSizeTrackingBasics(t *testing.T) {
+	f, _ := NewSizeTrackingFilter(2)
+	twentyNineId := []byte{27, 28, 29}
+	thirtyId := []byte{27, 28, 30}
+	thirtyThreeId := []byte{27, 28, 33}
+	shorterId := []byte{27, 28}
+	shouldNotContainShouldNotCollide(t, "nothing should be contained at all", f, twentyNineId)
+	numEntriesShouldBe(t, f, 1)
+	bytesUsedShouldBe(t, f, 3)
+	shouldContainST(t, "now it should", f, twentyNineId)
+	numEntriesShouldBe(t, f, 1)
+	bytesUsedShouldBe(t, f, 3)
+	shouldNotContainShouldNotCollide(t, "false unless the hash collides", f, thirtyId)
+	numEntriesShouldBe(t, f, 2)
+	bytesUsedShouldBe(t, f, 6)
+	shouldContainST(t, "original should still return true", f, twentyNineId)
+	shouldContainST(t, "new array should still return true", f, thirtyId)
+	numEntriesShouldBe(t, f, 2)
+
+	// Handling collisions. {27, 28, 33} and {27, 28, 30} hash to the same
+	// index using the current hash function inside Filter.
+	shouldNotContainShouldCollide(t, "colliding array returns false", f, thirtyThreeId)
+	numEntriesShouldBe(t, f, 2)
+	bytesUsedShouldBe(t, f, 6)
+	shouldContainST(t,
+		"colliding array returns true in second call", f, thirtyThreeId)
+	shouldNotContainShouldCollide(t, "original colliding array returns false", f, thirtyId)
+	bytesUsedShouldBe(t, f, 6)
+	shouldContainST(t, "original colliding array returns true", f, thirtyId)
+	shouldNotContainShouldCollide(t, "colliding array returns false", f, thirtyThreeId)
+	numEntriesShouldBe(t, f, 2)
+	bytesUsedShouldBe(t, f, 6)
+	shouldNotContainShouldCollide(t, "colliding shorter array returns false", f, shorterId)
+	numEntriesShouldBe(t, f, 2)
+	bytesUsedShouldBe(t, f, 5)
 }
 
 func TestSizeRounding(t *testing.T) {
-	f, _ := NewFilter(3)
-	if f.Size() != 4 {
-		t.Errorf("3 should round to 4, rounded to: ", f.Size())
-	}
-	f, _ = NewFilter(4)
-	if f.Size() != 4 {
-		t.Errorf("4 should round to 4", f.Size())
-	}
-	f, _ = NewFilter(129)
-	if f.Size() != 256 {
-		t.Errorf("129 should round to 256", f.Size())
-	}
+	t.Run("StandardFilter", func(t *testing.T) {
+		f, _ := NewFilter(3)
+		if f.Size() != 4 {
+			t.Errorf("3 should round to 4, rounded to: %d", f.Size())
+		}
+		f, _ = NewFilter(4)
+		if f.Size() != 4 {
+			t.Errorf("4 should round to 4, was: %d", f.Size())
+		}
+		f, _ = NewFilter(129)
+		if f.Size() != 256 {
+			t.Errorf("129 should round to 256, was: %d", f.Size())
+		}
+	})
+	t.Run("SizeTrackingFilter", func(t *testing.T) {
+		f, _ := NewSizeTrackingFilter(3)
+		if f.Size() != 4 {
+			t.Errorf("3 should round to 4, rounded to: %d", f.Size())
+		}
+		f, _ = NewSizeTrackingFilter(4)
+		if f.Size() != 4 {
+			t.Errorf("4 should round to 4, was: %d", f.Size())
+		}
+		f, _ = NewSizeTrackingFilter(129)
+		if f.Size() != 256 {
+			t.Errorf("129 should round to 256, was: %d", f.Size())
+		}
+	})
 }
 
 func TestTooLargeSize(t *testing.T) {
 	size := (1 << 30) + 1
-	f, err := NewFilter(size)
-	if err != ErrSizeTooLarge {
-		t.Errorf("did not error out on a too-large filter size")
+	validate := func(t *testing.T, f Filter, err error) {
+		if err != ErrSizeTooLarge {
+			t.Errorf("did not error out on a too-large filter size")
+		}
+		if f != nil && !reflect.ValueOf(f).IsNil() {
+			t.Errorf("did not return nil on a too-large filter size, got: %+v", f)
+		}
 	}
-	if f != nil {
-		t.Errorf("did not return nil on a too-large filter size")
-	}
+
+	t.Run("StandardFilter", func(t *testing.T) {
+		f, err := NewFilter(size)
+		validate(t, f, err)
+	})
+	t.Run("SizeTrackingFilter", func(t *testing.T) {
+		f, err := NewSizeTrackingFilter(size)
+		validate(t, f, err)
+	})
+
 }
 
 func TestTooSmallSize(t *testing.T) {
@@ -64,14 +131,48 @@ func TestTooSmallSize(t *testing.T) {
 	}
 }
 
-func shouldContain(t *testing.T, msg string, f *Filter, id []byte) {
+// we need two versions of this, instead of just taking a Filter interface, because we
+// want to print the unexported array in the failure case.
+func shouldContain(t *testing.T, msg string, f *StandardFilter, id []byte) {
 	if !f.Contains(id) {
 		t.Errorf("should contain, %s: id %v, array: %v", msg, id, f.array)
 	}
 }
 
-func shouldNotContain(t *testing.T, msg string, f *Filter, id []byte) {
-	if f.Contains(id) {
+func shouldContainST(t *testing.T, msg string, f *SizeTrackingFilter, id []byte) {
+	if !f.Contains(id) {
+		t.Errorf("should contain, %s: id %v, array: %v", msg, id, f.underlying.array)
+	}
+}
+
+func shouldNotContainShouldCollide(t *testing.T, msg string, f Filter, id []byte) {
+	contains, collision := f.ContainsCollision(id)
+	if contains {
 		t.Errorf("should not contain, %s: %v", msg, id)
+	} else if !collision {
+		t.Errorf("should collide, %s: %v", msg, id)
+	}
+}
+
+func shouldNotContainShouldNotCollide(t *testing.T, msg string, f Filter, id []byte) {
+	contains, collision := f.ContainsCollision(id)
+	if contains {
+		t.Errorf("should not contain, %s: %v", msg, id)
+	} else if collision {
+		t.Errorf("should not collide, %s: %v", msg, id)
+	}
+}
+
+func numEntriesShouldBe(t *testing.T, f *SizeTrackingFilter, expected uint32) {
+	actual := f.NumEntries()
+	if actual != expected {
+		t.Errorf("expected NumEntries to be: %d, but was: %d", expected, actual)
+	}
+}
+
+func bytesUsedShouldBe(t *testing.T, f *SizeTrackingFilter, expected uint64) {
+	actual := f.BytesUsed()
+	if actual != expected {
+		t.Errorf("expected BytesUsed to be: %d, but was: %d", expected, actual)
 	}
 }

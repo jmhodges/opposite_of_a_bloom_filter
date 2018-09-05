@@ -16,7 +16,13 @@ import (
 	"unsafe"
 )
 
-type Filter struct {
+type Filter interface {
+	Contains(id []byte) bool
+	ContainsCollision(id []byte) (contains bool, collision bool)
+	Size() int
+}
+
+type StandardFilter struct {
 	array    []*[]byte
 	sizeMask uint32
 }
@@ -25,7 +31,7 @@ var ErrSizeTooLarge = errors.New("oppobloom: size given too large to round to a 
 var ErrSizeTooSmall = errors.New("oppobloom: filter cannot have a zero or negative size")
 var MaxFilterSize = 1 << 30
 
-func NewFilter(size int) (*Filter, error) {
+func NewFilter(size int) (*StandardFilter, error) {
 	if size > MaxFilterSize {
 		return nil, ErrSizeTooLarge
 	}
@@ -36,19 +42,37 @@ func NewFilter(size int) (*Filter, error) {
 	size = int(math.Pow(2, math.Ceil(math.Log2(float64(size)))))
 	slice := make([]*[]byte, size)
 	sizeMask := uint32(size - 1)
-	return &Filter{slice, sizeMask}, nil
+	return &StandardFilter{array: slice, sizeMask: sizeMask}, nil
 }
 
-func (f *Filter) Contains(id []byte) bool {
+// Adds the given bytes to the set, and indicates if they were already present in the set.
+// A true value here is definitive; a false value may be a false negative.
+func (f *StandardFilter) Contains(id []byte) bool {
+	ret, _ := f.ContainsCollision(id)
+	return ret
+}
+
+// Like Contains, but also indicates if there was a collision on the key. If both are false,
+// then you can be sure that it is not a false negative. It may also be interested to track
+// how often collisons happen-- that tracking is left to external concerns.
+func (f *StandardFilter) ContainsCollision(id []byte) (contains bool, collision bool) {
+	contains, collision, _ = f.containsCollisionOldVal(id)
+	return contains, collision
+}
+
+func (f *StandardFilter) containsCollisionOldVal(id []byte) (contains bool, collision bool, oldId []byte) {
 	h := md5UintHash{md5.New()}
 	h.Write(id)
 	uindex := h.Sum32() & f.sizeMask
 	index := int32(uindex)
-	oldId := getAndSet(f.array, index, id)
-	return bytes.Equal(oldId, id)
+	oldId = getAndSet(f.array, index, id)
+	contains = bytes.Equal(oldId, id)
+	collision = len(oldId) != 0 && !contains
+
+	return contains, collision, oldId
 }
 
-func (f *Filter) Size() int {
+func (f *StandardFilter) Size() int {
 	return len(f.array)
 }
 
