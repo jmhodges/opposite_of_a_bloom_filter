@@ -66,14 +66,14 @@ func TestTooSmallSize(t *testing.T) {
 
 func shouldContain(t *testing.T, msg string, f *Filter, id []byte) {
 	t.Helper()
-	if !f.Contains(id) {
+	if !f.ContainsAndAdd(id) {
 		t.Errorf("should contain, %s: id %v, array: %v", msg, id, f.array)
 	}
 }
 
 func shouldNotContain(t *testing.T, msg string, f *Filter, id []byte) {
 	t.Helper()
-	if f.Contains(id) {
+	if f.ContainsAndAdd(id) {
 		t.Errorf("should not contain, %s: %v", msg, id)
 	}
 }
