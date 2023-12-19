@@ -14,6 +14,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=utf8"
+
 jobs:
   build:
 
