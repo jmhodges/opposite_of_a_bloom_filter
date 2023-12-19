@@ -1,0 +1,41 @@
+# This set up is required to get dependabot high quality dep info from maven
+# (dependabot doesn't run maven internally as of 2023-12-19; but it does update
+# poms). However, PRs opened by dependabot don't have the necessary permissions
+# to send the data back to itself. So, we need to set up `permissions` here and
+# the GitHub Action we need. Annoying.
+
+name: Update dependabot with Maven info
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+env:
+  JAVA_TOOL_OPTIONS: "-Dfile.encoding=utf8"
+
+jobs:
+  build:
+    name: Dependency upload
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+          cache-dependency-path: |
+            java/pom.xml
+
+      # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+      - name: Update dependency graph
+        uses: advanced-security/maven-dependency-submission-action@v3.0.3
+        with:
+          directory: java
