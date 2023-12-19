@@ -8,9 +8,8 @@ package oppobloom
 
 import (
 	"bytes"
-	"crypto/md5"
 	"errors"
-	"hash"
+	"hash/fnv"
 	"math"
 	"sync/atomic"
 	"unsafe"
@@ -40,7 +39,7 @@ func NewFilter(size int) (*Filter, error) {
 }
 
 func (f *Filter) Contains(id []byte) bool {
-	h := md5UintHash{md5.New()}
+	h := fnv.New32()
 	h.Write(id)
 	uindex := h.Sum32() & f.sizeMask
 	index := int32(uindex)
@@ -50,20 +49,6 @@ func (f *Filter) Contains(id []byte) bool {
 
 func (f *Filter) Size() int {
 	return len(f.array)
-}
-
-type md5UintHash struct {
-	hash.Hash // a hack with knowledge of how md5 works
-}
-
-func (m md5UintHash) Sum32() uint32 {
-	sum := m.Sum(nil)
-	x := uint32(sum[0])
-	for _, val := range sum[1:3] {
-		x = x << 3
-		x += uint32(val)
-	}
-	return x
 }
 
 // Returns the id that was in the slice at the given index after putting the

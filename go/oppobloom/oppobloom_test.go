@@ -11,14 +11,14 @@ func TestTheBasics(t *testing.T) {
 	f, _ := NewFilter(2)
 	twentyNineId := []byte{27, 28, 29}
 	thirtyId := []byte{27, 28, 30}
-	thirtyThreeId := []byte{27, 28, 33}
+	thirtyThreeId := []byte{27, 28, 32}
 	shouldNotContain(t, "nothing should be contained at all", f, twentyNineId)
 	shouldContain(t, "now it should", f, twentyNineId)
 	shouldNotContain(t, "false unless the hash collides", f, thirtyId)
 	shouldContain(t, "original should still return true", f, twentyNineId)
 	shouldContain(t, "new array should still return true", f, thirtyId)
 
-	// Handling collisions. {27, 28, 33} and {27, 28, 30} hash to the same
+	// Handling collisions. {27, 28, 33} and {27, 28, 32} hash to the same
 	// index using the current hash function inside Filter.
 	shouldNotContain(t, "colliding array returns false", f, thirtyThreeId)
 	shouldContain(t,
@@ -65,12 +65,14 @@ func TestTooSmallSize(t *testing.T) {
 }
 
 func shouldContain(t *testing.T, msg string, f *Filter, id []byte) {
+	t.Helper()
 	if !f.Contains(id) {
 		t.Errorf("should contain, %s: id %v, array: %v", msg, id, f.array)
 	}
 }
 
 func shouldNotContain(t *testing.T, msg string, f *Filter, id []byte) {
+	t.Helper()
 	if f.Contains(id) {
 		t.Errorf("should not contain, %s: %v", msg, id)
 	}
