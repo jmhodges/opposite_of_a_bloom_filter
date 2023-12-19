@@ -19,13 +19,12 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21'
+        go-version: 'stable'
 
-    - name: cd to Go code
-      run: cd go/oppobloom 
-    
     - name: Build
       run: go build -v ./...
+      working-directory: go/oppobloom
 
     - name: Test
       run: go test -v ./...
+      working-directory: go/oppobloom
