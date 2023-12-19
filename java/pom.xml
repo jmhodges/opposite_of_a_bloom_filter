@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>11.0.2</version>
+            <version>33.0.0-jre</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
