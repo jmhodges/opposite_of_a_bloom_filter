@@ -27,7 +27,7 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        cache-dependency-paths: |
+        cache-dependency-path: |
           java/pom.xml
 
     - name: Build with Maven
