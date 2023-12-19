@@ -31,15 +31,15 @@ func TestTheBasics(t *testing.T) {
 func TestSizeRounding(t *testing.T) {
 	f, _ := NewFilter(3)
 	if f.Size() != 4 {
-		t.Errorf("3 should round to 4, rounded to: ", f.Size())
+		t.Errorf("3 should round to 4, rounded to: %d", f.Size())
 	}
 	f, _ = NewFilter(4)
 	if f.Size() != 4 {
-		t.Errorf("4 should round to 4", f.Size())
+		t.Errorf("4 should round to 4")
 	}
 	f, _ = NewFilter(129)
 	if f.Size() != 256 {
-		t.Errorf("129 should round to 256", f.Size())
+		t.Errorf("129 should round to 256, rounded to: %d", f.Size())
 	}
 }
 
