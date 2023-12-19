@@ -25,15 +25,10 @@ jobs:
         cache-dependency-path: |
           go/oppobloom/go.sum
 
-    - name: pwd and ls
-      run: |
-        pwd
-        ls -al
-    - name: cd to Go code
-      run: cd ./go/oppobloom
-
     - name: Build
       run: go build -v ./...
+      working-directory: go/oppobloom
 
     - name: Test
       run: go test -v ./...
+      working-directory: go/oppobloom
