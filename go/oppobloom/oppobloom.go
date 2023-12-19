@@ -38,7 +38,13 @@ func NewFilter(size int) (*Filter, error) {
 	return &Filter{slice, sizeMask}, nil
 }
 
-func (f *Filter) Contains(id []byte) bool {
+// ContainsAndAdd adds the id to the filter and returns true if the id was
+// already present in it. False positives are not possible but false negatives
+// are (that is, this function will never incorrectly return true but may
+// incorrectly return false). False negatives occur when the given id has been
+// previously seen, but in the time since that id was last passed to this
+// method, a different id that hashed to the same index in the filter was added.
+func (f *Filter) ContainsAndAdd(id []byte) bool {
 	h := fnv.New32()
 	h.Write(id)
 	uindex := h.Sum32() & f.sizeMask
