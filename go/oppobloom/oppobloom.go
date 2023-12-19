@@ -15,7 +15,7 @@ import (
 )
 
 type Filter struct {
-	array    []*atomic.Pointer[[]byte]
+	array    []atomic.Pointer[[]byte]
 	sizeMask uint32
 }
 
@@ -32,10 +32,7 @@ func NewFilter(size int) (*Filter, error) {
 	}
 	// round to the next largest power of two
 	size = int(math.Pow(2, math.Ceil(math.Log2(float64(size)))))
-	slice := make([]*atomic.Pointer[[]byte], size)
-	for i := range slice {
-		slice[i] = new(atomic.Pointer[[]byte])
-	}
+	slice := make([]atomic.Pointer[[]byte], size)
 	sizeMask := uint32(size - 1)
 	return &Filter{slice, sizeMask}, nil
 }
@@ -63,8 +60,8 @@ func (f *Filter) Size() int {
 
 // Returns the id that was in the slice at the given index after putting the
 // new id in the slice at that index, atomically.
-func getAndSet(arr []*atomic.Pointer[[]byte], index int32, id []byte) []byte {
-	indexPtr := arr[index]
+func getAndSet(arr []atomic.Pointer[[]byte], index int32, id []byte) []byte {
+	indexPtr := &arr[index]
 	idUnsafe := &id
 	var oldId []byte
 	for {
