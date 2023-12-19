@@ -12,11 +12,10 @@ import (
 	"hash/fnv"
 	"math"
 	"sync/atomic"
-	"unsafe"
 )
 
 type Filter struct {
-	array    []*[]byte
+	array    []*atomic.Pointer[[]byte]
 	sizeMask uint32
 }
 
@@ -33,7 +32,10 @@ func NewFilter(size int) (*Filter, error) {
 	}
 	// round to the next largest power of two
 	size = int(math.Pow(2, math.Ceil(math.Log2(float64(size)))))
-	slice := make([]*[]byte, size)
+	slice := make([]*atomic.Pointer[[]byte], size)
+	for i := range slice {
+		slice[i] = new(atomic.Pointer[[]byte])
+	}
 	sizeMask := uint32(size - 1)
 	return &Filter{slice, sizeMask}, nil
 }
@@ -44,6 +46,8 @@ func NewFilter(size int) (*Filter, error) {
 // incorrectly return false). False negatives occur when the given id has been
 // previously seen, but in the time since that id was last passed to this
 // method, a different id that hashed to the same index in the filter was added.
+//
+// ContainsAndAdd is thread-safe.
 func (f *Filter) ContainsAndAdd(id []byte) bool {
 	h := fnv.New32()
 	h.Write(id)
@@ -59,16 +63,15 @@ func (f *Filter) Size() int {
 
 // Returns the id that was in the slice at the given index after putting the
 // new id in the slice at that index, atomically.
-func getAndSet(arr []*[]byte, index int32, id []byte) []byte {
-	indexPtr := (*unsafe.Pointer)(unsafe.Pointer(&arr[index]))
-	idUnsafe := unsafe.Pointer(&id)
+func getAndSet(arr []*atomic.Pointer[[]byte], index int32, id []byte) []byte {
+	indexPtr := arr[index]
+	idUnsafe := &id
 	var oldId []byte
 	for {
-		oldIdUnsafe := atomic.LoadPointer(indexPtr)
-		if atomic.CompareAndSwapPointer(indexPtr, oldIdUnsafe, idUnsafe) {
-			oldIdPtr := (*[]byte)(oldIdUnsafe)
-			if oldIdPtr != nil {
-				oldId = *oldIdPtr
+		oldIdUnsafe := indexPtr.Load()
+		if indexPtr.CompareAndSwap(oldIdUnsafe, idUnsafe) {
+			if oldIdUnsafe != nil {
+				oldId = *oldIdUnsafe
 			}
 			break
 		}
