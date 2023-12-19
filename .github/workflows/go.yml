@@ -5,7 +5,9 @@ name: Go
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - "master"
+      - "test_*"
   pull_request:
     branches: [ "master" ]
 
@@ -19,11 +21,13 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.21'
+        go-version: 'stable'
+        cache-dependency-path: |
+          go/oppobloom/go.sum
 
     - name: cd to Go code
-      run: cd go/oppobloom 
-    
+      run: cd ./go/oppobloom
+
     - name: Build
       run: go build -v ./...
 
